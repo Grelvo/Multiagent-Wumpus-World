@@ -1,0 +1,12 @@
+# Board
+GRID_SIZE = 20
+TILE_SIZE = 32
+WINDOW_SIZE = GRID_SIZE * TILE_SIZE
+
+# Cell Elements
+NUM_PITS = 20
+NUM_WUMPUS = 3
+NUM_GOLD = 1
+
+# Agent
+NUN_AGENTS = 2
