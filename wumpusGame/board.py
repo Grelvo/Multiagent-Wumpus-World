@@ -1,5 +1,6 @@
 from util.config import GRID_SIZE, NUM_WUMPUS, NUM_PITS, NUM_GOLD
 from wumpusGame.cell import Cell
+from agents.baseAgent import BaseAgent
 
 import random
 from typing import Callable
@@ -20,16 +21,24 @@ class Board:
     """
     def __init__(self):
         self.grid: list[list[Cell]] = []
-        self.cells = []
+        self.blocked_pos: list[tuple[int, int]] = []
+        self.cells: list[Cell] = []
 
-    def setup_board(self) -> None:
+    def setup_board(self, agents: list[BaseAgent]) -> None:
         """Sets up the Cells in the Board"""
         self.grid = [
             [Cell(i, j) for j in range(GRID_SIZE)]
             for i in range(GRID_SIZE)
         ]
-
         self.cells = self._flatten_grid()
+
+        agent_cells: list[Cell] = random.sample(self._get_available_cells(), len(agents))
+        for index, cell in enumerate(agent_cells):
+            agents[index].x = cell.x
+            agents[index].y = cell.y
+            agents[index].visited.append((cell.x, cell.y))
+            self.blocked_pos.append((cell.x, cell.y))
+
         self._populate_cells()
 
     def _populate_cells(self) -> None:
@@ -39,7 +48,7 @@ class Board:
         self._place_element(NUM_GOLD, self._place_gold)
 
         for cell in self.cells:
-            neighbours = self._get_neighbours(cell)
+            neighbours = self.get_neighbours(cell)
             cell.hasStench = any(neighbour.hasWumpus for neighbour in neighbours)
             cell.hasBreeze = any(neighbour.hasPit for neighbour in neighbours)
 
@@ -66,13 +75,19 @@ class Board:
 
     def _get_available_cells(self) -> list[Cell]:
         """Returns the available Cells in the Board"""
-        return [cell for cell in self.cells if not cell.hasWumpus and not cell.hasPit and not cell.hasGold]
+        return [
+            cell for cell in self.cells
+            if not cell.hasWumpus
+            and not cell.hasPit
+            and not cell.hasGold
+            and [cell.x, cell.y] not in self.blocked_pos
+        ]
 
     def _flatten_grid(self) -> list[Cell]:
         """Returns the flatten Grid"""
         return [cell for row in self.grid for cell in row]
 
-    def _get_neighbours(self, cell: Cell) -> list[Cell]:
+    def get_neighbours(self, cell: Cell) -> list[Cell]:
         """Returns the Neighbours of a Cell"""
         return [
             self.grid[x][y]
