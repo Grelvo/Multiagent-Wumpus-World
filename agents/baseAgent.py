@@ -1,15 +1,25 @@
 from util.config import GRID_SIZE
-from wumpusGame.cell import Cell
 
 import random
 
 
 class BaseAgent:
-    def __init__(self):
+    def __init__(self, agent_id: int):
+        self.agent_id: int = agent_id
+
         self.x: int | None = None
         self.y: int | None = None
 
         self.visited: list[tuple[int, int]] = []
+        self.dead = False
+        self.score = 0
+
+    def reset(self):
+        self.x = None
+        self.y = None
+
+        self.visited = []
+        self.dead = False
 
     def decide_next_move(self, board) -> tuple[int, int]:
         possible_moves: dict[tuple[int, int], int] = {
@@ -35,7 +45,7 @@ class BaseAgent:
                          or board.grid[self.x][self.y].hasStench)):
                 possible_moves[move] -= 100
 
-        self.extended_decide_next_move(possible_moves, board)
+        self._extended_decide_next_move(possible_moves, board)
 
         good_moves = [move for move in possible_moves.keys() if possible_moves[move] > 0]
         neutral_moves = [move for move in possible_moves.keys() if possible_moves[move] == 0]
@@ -47,5 +57,5 @@ class BaseAgent:
         else:
             return max(possible_moves, key=possible_moves.get)
 
-    def extended_decide_next_move(self, possible_moves: dict[tuple[int, int], int], board) -> None:
+    def _extended_decide_next_move(self, possible_moves: dict[tuple[int, int], int], board) -> None:
         pass

@@ -41,6 +41,11 @@ class Board:
 
         self._populate_cells()
 
+    def reset(self):
+        self.grid = []
+        self.blocked_pos = []
+        self.cells = []
+
     def _populate_cells(self) -> None:
         """Populates the Cells in the Board"""
         self._place_element(NUM_WUMPUS, self._place_wumpus)
