@@ -3,7 +3,7 @@ from wumpusGame.agent import Agent
 from wumpusGame.agentManager import AgentManager
 from wumpusGame.task import ExplorationTask, Task
 from util.config import WINDOW_SIZE, TILE_SIZE
-from util.theme import WUMPUS_COLOR, GOLD_COLOR, PIT_COLOR, BREEZE_COLOR, STENCH_COLOR, AGENT_COLOR, BLACK, GRAY, DARK_GRAY
+from util.theme import *
 
 import pygame
 from enum import Enum
@@ -22,6 +22,7 @@ class WumpusGame:
         self._font = pygame.font.SysFont(None, 24)
 
         self._running = True
+        self._restart = False
 
         self._mode = GameMode.STEP
         self._step_requested = False
@@ -35,6 +36,7 @@ class WumpusGame:
             Agent(2),
             Agent(3),
             Agent(4),
+            Agent(0),
         ]
         self._selected_agent_id: int | None = None
         self._clear_vision: bool = False
@@ -52,7 +54,8 @@ class WumpusGame:
             self._handle_events()
             self._update(dt)
             self._draw()
-        self._cleanup()
+        if self._restart == True:
+            self._cleanup()
 
     def _handle_events(self) -> None:
         """Handles the User Inputs"""
@@ -81,9 +84,12 @@ class WumpusGame:
                             self._selected_agent_id = num
                 elif event.key == pygame.K_c:
                     self._clear_vision = not self._clear_vision
+                elif event.key == pygame.K_r:
+                    self._running = False
+                    self._restart = True
 
     def _update(self, dt: float) -> None:
-        """Updates any other"""
+        """Updates the Gamestate"""
         if self._mode == GameMode.STEP and self._step_requested:
             self._step_requested = False
             self._game_step()
@@ -117,6 +123,7 @@ class WumpusGame:
                     agent.dead = True
                 elif result.gold:
                     self._running = False
+                    self._restart = True
 
     def _draw(self) -> None:
         """Draws the Game Window"""
@@ -147,9 +154,6 @@ class WumpusGame:
 
             if agent:
                 color = AGENT_COLOR
-            # elif (self._selected_agent_id is not None
-            #       and (cell.x, cell.y) not in self._agents[self._selected_agent_id].visited):
-            #     color = DARK_GRAY
             elif not self._clear_vision and (self._selected_agent_id is None and not any((cell.x, cell.y) in agent.visited for agent in self._agents) or self._selected_agent_id is not None and (cell.x, cell.y) not in selected_agent.visited):
                 color = DARK_GRAY
             elif cell.hasAliveWumpus:
@@ -158,6 +162,8 @@ class WumpusGame:
                 color = PIT_COLOR
             elif cell.hasGold:
                 color = GOLD_COLOR
+            elif cell.hasBreeze and cell.hasStench:
+                color = BRENCH_COLOR
             elif cell.hasBreeze:
                 color = BREEZE_COLOR
             elif cell.hasStench:
@@ -175,6 +181,7 @@ class WumpusGame:
 
     def _cleanup(self):
         """Clean Up and reset the Game"""
+        self._restart = False
         self._board.reset()
         for agent in self._agents:
             agent.reset()

@@ -131,10 +131,9 @@ class Board:
 
     def get_percept(self, x: int, y: int) -> Percept:
         cell = self.grid[x][y]
-        neighbours = self.get_neighbours(cell)
         return Percept(
-            breeze=any(neighbour.hasPit for neighbour in neighbours),
-            stench=any(neighbour.hasAliveWumpus for neighbour in neighbours),
+            breeze=cell.hasBreeze,
+            stench=cell.hasStench,
         )
 
     # -----------------------------------------------------------------------------------------------------------------

@@ -16,7 +16,7 @@ class AgentManager:
 
     @staticmethod
     def create_bids(agents: list[Agent], tasks: list[ExplorationTask]) -> list[tuple[float, int, ExplorationTask, list[tuple[int, int]]]]:
-        bids: list[tuple[float, int, ExplorationTask, any]] = []
+        bids: list[tuple[float, int, ExplorationTask, list[tuple[int, int]]]] = []
         for agent in agents:
             if agent.dead:
                 continue
