@@ -73,8 +73,8 @@ class WumpusGame:
                         self._mode = GameMode.STEP
                         self._time_since_last_step = 0
                 elif pygame.K_0 <= event.key <= pygame.K_9:
-                    num = event.key - pygame.K_0 - 1
-                    if 0 <= num < len(self._agents):
+                    num = event.key - pygame.K_0
+                    if any(agent.agent_id == num for agent in self._agents):
                         if self._selected_agent_id == num:
                             self._selected_agent_id = None
                         else:
@@ -140,12 +140,17 @@ class WumpusGame:
                 (agent for agent in self._agents if agent.x == cell.x and agent.y == cell.y and not agent.dead),
                 None
             )
+            selected_agent = next(
+                (agent for agent in self._agents if agent.agent_id == self._selected_agent_id),
+                None
+            )
+
             if agent:
                 color = AGENT_COLOR
             # elif (self._selected_agent_id is not None
             #       and (cell.x, cell.y) not in self._agents[self._selected_agent_id].visited):
             #     color = DARK_GRAY
-            elif not self._clear_vision and (self._selected_agent_id is None and not any((cell.x, cell.y) in agent.visited for agent in self._agents) or self._selected_agent_id is not None and (cell.x, cell.y) not in self._agents[self._selected_agent_id].visited):
+            elif not self._clear_vision and (self._selected_agent_id is None and not any((cell.x, cell.y) in agent.visited for agent in self._agents) or self._selected_agent_id is not None and (cell.x, cell.y) not in selected_agent.visited):
                 color = DARK_GRAY
             elif cell.hasAliveWumpus:
                 color = WUMPUS_COLOR
