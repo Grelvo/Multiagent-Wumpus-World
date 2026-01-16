@@ -1,6 +1,8 @@
 from util.config import GRID_SIZE, NUM_WUMPUS, NUM_PITS, NUM_GOLD
+from wumpusGame.agent import Agent
 from wumpusGame.cell import Cell
-from agents.baseAgent import BaseAgent
+from wumpusGame.percept import Percept
+from wumpusGame.task import Task, TaskResult
 
 import random
 from typing import Callable
@@ -24,7 +26,10 @@ class Board:
         self.blocked_pos: list[tuple[int, int]] = []
         self.cells: list[Cell] = []
 
-    def setup_board(self, agents: list[BaseAgent]) -> None:
+    # -----------------------------------------------------------------------------------------------------------------
+    # Setup Board
+    # -----------------------------------------------------------------------------------------------------------------
+    def setup_board(self, agents: list[Agent]) -> None:
         """Sets up the Cells in the Board"""
         self.grid = [
             [Cell(i, j) for j in range(GRID_SIZE)]
@@ -32,21 +37,18 @@ class Board:
         ]
         self.cells = self._flatten_grid()
 
-        agent_cells: list[Cell] = random.sample(self._get_available_cells(), len(agents))
-        for index, cell in enumerate(agent_cells):
-            agents[index].x = cell.x
-            agents[index].y = cell.y
-            agents[index].visited.append((cell.x, cell.y))
-            self.blocked_pos.append((cell.x, cell.y))
-
-        self._populate_cells()
+        self._populate_cells(agents)
 
     def reset(self):
         self.grid = []
         self.blocked_pos = []
         self.cells = []
 
-    def _populate_cells(self) -> None:
+    # -----------------------------------------------------------------------------------------------------------------
+    # Populate Cells
+    # -----------------------------------------------------------------------------------------------------------------
+
+    def _populate_cells(self, agents: list[Agent]) -> None:
         """Populates the Cells in the Board"""
         self._place_element(NUM_WUMPUS, self._place_wumpus)
         self._place_element(NUM_PITS, self._place_pit)
@@ -54,8 +56,15 @@ class Board:
 
         for cell in self.cells:
             neighbours = self.get_neighbours(cell)
-            cell.hasStench = any(neighbour.hasWumpus for neighbour in neighbours)
+            cell.hasStench = any(neighbour.hasAliveWumpus for neighbour in neighbours)
             cell.hasBreeze = any(neighbour.hasPit for neighbour in neighbours)
+
+        agent_cells: list[Cell] = random.sample(self._get_available_cells(), len(agents))
+        for index, cell in enumerate(agent_cells):
+            agents[index].x = cell.x
+            agents[index].y = cell.y
+            agents[index].visited.append((cell.x, cell.y))
+            self.blocked_pos.append((cell.x, cell.y))
 
     def _place_element(self, num: int, place_func: Callable[[Cell], None]) -> None:
         """Calls the gives place_func on randomly chosen cells"""
@@ -66,7 +75,7 @@ class Board:
     @staticmethod
     def _place_wumpus(cell: Cell) -> None:
         """Helper Method for placing the Wumpus Element"""
-        cell.hasWumpus = True
+        cell.hasAliveWumpus = True
 
     @staticmethod
     def _place_pit(cell: Cell) -> None:
@@ -78,13 +87,19 @@ class Board:
         """Helper Method for placing the Wumpus Element"""
         cell.hasGold = True
 
+    # -----------------------------------------------------------------------------------------------------------------
+    # Utility
+    # -----------------------------------------------------------------------------------------------------------------
+
     def _get_available_cells(self) -> list[Cell]:
         """Returns the available Cells in the Board"""
         return [
             cell for cell in self.cells
-            if not cell.hasWumpus
+            if not cell.hasAliveWumpus
             and not cell.hasPit
             and not cell.hasGold
+            and not cell.hasBreeze
+            and not cell.hasStench
             and [cell.x, cell.y] not in self.blocked_pos
         ]
 
@@ -109,4 +124,35 @@ class Board:
     def _in_bounds(pos: tuple[int, int]) -> bool:
         """Checks if a given Position is in bounds"""
         return 0 <= pos[0] < GRID_SIZE and 0 <= pos[1] < GRID_SIZE
+
+    # -----------------------------------------------------------------------------------------------------------------
+    # Percept
+    # -----------------------------------------------------------------------------------------------------------------
+
+    def get_percept(self, x: int, y: int) -> Percept:
+        cell = self.grid[x][y]
+        neighbours = self.get_neighbours(cell)
+        return Percept(
+            breeze=any(neighbour.hasPit for neighbour in neighbours),
+            stench=any(neighbour.hasAliveWumpus for neighbour in neighbours),
+        )
+
+    # -----------------------------------------------------------------------------------------------------------------
+    # Task
+    # -----------------------------------------------------------------------------------------------------------------
+
+    def execute_task(self, agent: Agent, task: Task) -> TaskResult:
+        if task.type == "MOVE":
+            if not self._in_bounds(task.target):
+                return TaskResult(dead=True)
+
+            agent.x, agent.y = task.target
+
+            target_x, target_y = task.target
+            cell = self.grid[target_x][target_y]
+
+            return TaskResult(
+                dead=cell.hasPit or cell.hasAliveWumpus,
+                gold=cell.hasGold,
+            )
 

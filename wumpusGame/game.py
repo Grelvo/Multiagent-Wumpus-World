@@ -1,7 +1,8 @@
 from wumpusGame.board import Board
-from agents.baseAgent import BaseAgent
-from agents.explorerAgent import ExplorerAgent
-from util.config import WINDOW_SIZE, TILE_SIZE, LEADERBOARD_WIDTH
+from wumpusGame.agent import Agent
+from wumpusGame.agentManager import AgentManager
+from wumpusGame.task import ExplorationTask, Task
+from util.config import WINDOW_SIZE, TILE_SIZE
 from util.theme import WUMPUS_COLOR, GOLD_COLOR, PIT_COLOR, BREEZE_COLOR, STENCH_COLOR, AGENT_COLOR, BLACK, GRAY, DARK_GRAY
 
 import pygame
@@ -17,7 +18,7 @@ class WumpusGame:
     def __init__(self):
         pygame.init()
         self._clock = pygame.time.Clock()
-        self._screen = pygame.display.set_mode((WINDOW_SIZE + LEADERBOARD_WIDTH, WINDOW_SIZE))
+        self._screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
         self._font = pygame.font.SysFont(None, 24)
 
         self._running = True
@@ -28,18 +29,20 @@ class WumpusGame:
         self._time_since_last_step = 0
 
         self._board: Board = Board()
-        self._agents: dict[BaseAgent, int] = {
-            ExplorerAgent(1): 0,
-            ExplorerAgent(2): 0,
-            ExplorerAgent(3): 0,
-            ExplorerAgent(4): 0,
-        }
+        self._agent_manager = AgentManager()
+        self._agents: list[Agent] = [
+            Agent(1),
+            Agent(2),
+            Agent(3),
+            Agent(4),
+        ]
         self._selected_agent_id: int | None = None
+        self._clear_vision: bool = False
 
     def start_game(self) -> None:
         """Starts the Hunt der Wumpus Game"""
         self._running = True
-        self._board.setup_board(list(self._agents.keys()))
+        self._board.setup_board(list(self._agents))
         self._run()
 
     def _run(self) -> None:
@@ -69,14 +72,15 @@ class WumpusGame:
                     else:
                         self._mode = GameMode.STEP
                         self._time_since_last_step = 0
-                if pygame.K_0 <= event.key <= pygame.K_9:
+                elif pygame.K_0 <= event.key <= pygame.K_9:
                     num = event.key - pygame.K_0 - 1
                     if 0 <= num < len(self._agents):
                         if self._selected_agent_id == num:
                             self._selected_agent_id = None
                         else:
                             self._selected_agent_id = num
-                    print(self._selected_agent_id)
+                elif event.key == pygame.K_c:
+                    self._clear_vision = not self._clear_vision
 
     def _update(self, dt: float) -> None:
         """Updates any other"""
@@ -91,30 +95,34 @@ class WumpusGame:
 
     def _game_step(self) -> None:
         """One Step in the Game"""
-        for agent in self._agents.keys():
+        for agent in self._agents:
             if agent.dead:
                 continue
 
-            x, y = agent.decide_next_move(self._board)
-            agent.x, agent.y = x, y
-            agent.visited.append((x, y))
+            percept = self._board.get_percept(agent.x, agent.y)
+            agent.update_belief(percept)
 
-            cell = self._board.grid[x][y]
-            if cell.hasWumpus or cell.hasPit:
-                # Agent Died
-                agent.dead = True
+        tasks = self._agent_manager.create_tasks(self._agents, self._board)
 
-            if cell.hasGold:
-                # Agent Wins
-                agent.score += 1
-                self._running = False
+        bids = self._agent_manager.create_bids(self._agents, tasks)
+
+        awarded_tasks = self._agent_manager.award_tasks(bids)
+
+        for agent in self._agents:
+            if agent.agent_id in awarded_tasks:
+                task = Task(type_="MOVE", target=awarded_tasks[agent.agent_id].target)
+                result = self._board.execute_task(agent, task)
+
+                if result.dead:
+                    agent.dead = True
+                elif result.gold:
+                    self._running = False
 
     def _draw(self) -> None:
         """Draws the Game Window"""
         self._screen.fill((255, 255, 255))
 
         self._draw_board()
-        self._draw_leaderboard()
 
         pygame.display.flip()
 
@@ -129,15 +137,17 @@ class WumpusGame:
             )
 
             agent = next(
-                (agent for agent in self._agents.keys() if agent.x == cell.x and agent.y == cell.y and not agent.dead),
+                (agent for agent in self._agents if agent.x == cell.x and agent.y == cell.y and not agent.dead),
                 None
             )
             if agent:
                 color = AGENT_COLOR
-            elif (self._selected_agent_id is not None
-                  and (cell.x, cell.y) not in list(self._agents.keys())[self._selected_agent_id].visited):
+            # elif (self._selected_agent_id is not None
+            #       and (cell.x, cell.y) not in self._agents[self._selected_agent_id].visited):
+            #     color = DARK_GRAY
+            elif not self._clear_vision and (self._selected_agent_id is None and not any((cell.x, cell.y) in agent.visited for agent in self._agents) or self._selected_agent_id is not None and (cell.x, cell.y) not in self._agents[self._selected_agent_id].visited):
                 color = DARK_GRAY
-            elif cell.hasWumpus:
+            elif cell.hasAliveWumpus:
                 color = WUMPUS_COLOR
             elif cell.hasPit:
                 color = PIT_COLOR
@@ -157,22 +167,6 @@ class WumpusGame:
                 label = self._font.render(f"{agent.agent_id}", True, BLACK)
                 rect = label.get_rect(center=rect.center)
                 self._screen.blit(label, rect)
-
-    def _draw_leaderboard(self):
-        """Draws the Leaderboard"""
-
-        start_x = WINDOW_SIZE + 20
-        start_y = 20
-        spacing = 40
-
-        rect = pygame.Rect(WINDOW_SIZE, 0, LEADERBOARD_WIDTH, 50)
-        label = self._font.render("Leaderboard", True, BLACK)
-        rect = label.get_rect(center=rect.center)
-        self._screen.blit(label, rect)
-
-        for index, agent in enumerate(sorted(self._agents, key=lambda a: -a.score)):
-            label = self._font.render(f"{agent.agent_id}: {agent.score}", True, BLACK)
-            self._screen.blit(label, (start_x, start_y + spacing * (index + 2)))
 
     def _cleanup(self):
         """Clean Up and reset the Game"""

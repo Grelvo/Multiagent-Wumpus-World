@@ -4,16 +4,14 @@ class Cell:
     Contains the Information of what is inside the Cell.
     """
     def __init__(self, x: int, y: int):
-        self.x = x
-        self.y = y
+        self.x: int = x
+        self.y: int = y
 
-        # Hazards
-        self.hasPit = False
-        self.hasWumpus = False
+        self.hasPit: bool = False
+        self.hasAliveWumpus: bool = False
+        self.hasDeadWumpus: bool = False
 
-        # Hints
-        self.hasBreeze = False
-        self.hasStench = False
+        self.hasStench: bool = False
+        self.hasBreeze: bool = False
 
-        # Rewards
-        self.hasGold = False
+        self.hasGold: bool = False
