@@ -1,6 +1,5 @@
-from agent.task import Task, MoveTask
+from agent.task import Task, MoveTask, TaskResult
 from agent.core import Agent
-from agent.percept import Percept
 from game.board import Board
 from util.helperFunc import get_neighbours
 
@@ -27,22 +26,22 @@ class AgentManager:
         self.shared_beliefs = {}
         self._potential_danger_groups = []
 
-    def update_beliefs(self, agent: Agent, percept: Percept) -> None:
+    def update_beliefs(self, agent: Agent, result: TaskResult) -> None:
         """Updates the shared_visited and shared_beliefs state.
         Also marks potential dangers and converts potential dangers to confirmed dangers.
 
-        :param agent: The Agent that perceived something new.
-        :param percept: The information the Agent perceived.
+        :param agent: The agent that did the task.
+        :param result: The result of the task.
         """
         self.shared_visited.add((agent.x, agent.y))
         self.shared_beliefs.setdefault((agent.x, agent.y), {}).update({
-            "breeze": percept.breeze,
-            "stench": percept.stench,
+            "breeze": result.breeze,
+            "stench": result.stench,
         })
 
         neighbors = get_neighbours(agent.x, agent.y)
 
-        if percept.stench or percept.breeze:
+        if result.stench or result.breeze:
             potential_danger_group = []
             for nx, ny in neighbors:
                 if (nx, ny) in self.shared_visited:
@@ -61,8 +60,8 @@ class AgentManager:
                     continue
 
                 self.shared_beliefs.setdefault((nx, ny), {}).update({
-                    "potential_pit": percept.breeze,
-                    "potential_wumpus": percept.stench,
+                    "potential_pit": result.breeze,
+                    "potential_wumpus": result.stench,
                 })
                 potential_danger_group.append((nx, ny))
 
@@ -149,7 +148,7 @@ class AgentManager:
         """
         awarded_tasks: dict[int, Task] = {}
         for bid, agent_id, task, path in bids:
-            if path is None or agent_id  in awarded_tasks or task in awarded_tasks.values():
+            if path is None or agent_id in awarded_tasks or task in awarded_tasks.values():
                 continue
             task.path = path
             awarded_tasks[agent_id] = task

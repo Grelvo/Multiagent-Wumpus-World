@@ -40,6 +40,7 @@ class TaskResult:
     :ivar dead (bool): Whether the agent died as a result of the task.
     :ivar gold (bool): Whether the agent found gold as a result of the task.
     """
-    def __init__(self, dead=False, gold=False):
-        self.dead: bool = dead
+    def __init__(self, breeze=False, stench=False, gold=False):
+        self.breeze: bool = breeze
+        self.stench: bool = stench
         self.gold: bool = gold

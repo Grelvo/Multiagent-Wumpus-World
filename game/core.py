@@ -1,6 +1,7 @@
-from game.board import Board
 from agent.core import Agent
 from agent.manager import AgentManager
+from agent.task import TaskResult
+from game.board import Board
 from util.config import WINDOW_SIZE, TILE_SIZE
 from util.theme import *
 
@@ -63,8 +64,7 @@ class Game:
         self._board.setup_board(self._agents)
 
         for agent in self._agents:
-            percept = self._board.get_percept(agent.x, agent.y)
-            self._agent_manager.update_beliefs(agent, percept)
+            self._agent_manager.update_beliefs(agent, TaskResult())
 
         self._run()
 
@@ -150,14 +150,11 @@ class Game:
 
             result = self._board.execute_task(agent, awarded_tasks[agent.agent_id])
 
-            if result.dead:
-                agent.dead = True
-            elif result.gold:
+            if result.gold:
                 self._running = False
                 self._restart = True
 
-            percept = self._board.get_percept(agent.x, agent.y)
-            self._agent_manager.update_beliefs(agent, percept)
+            self._agent_manager.update_beliefs(agent, result)
 
     def _draw(self) -> None:
         """Draws the game window."""

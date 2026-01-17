@@ -1,9 +1,8 @@
+from agent.core import Agent
+from agent.task import Task, TaskResult, TaskType
+from game.cell import Cell
 from util.config import GRID_SIZE, NUM_WUMPUS, NUM_PITS, NUM_GOLD
 from util.helperFunc import is_in_bounds, get_neighbours
-from game.cell import Cell
-from agent.core import Agent
-from agent.percept import Percept
-from agent.task import Task, TaskResult, TaskType
 
 import random
 from typing import Callable
@@ -111,19 +110,6 @@ class Board:
         """
         return [cell for row in self._grid for cell in row]
 
-    def get_percept(self, x: int, y: int) -> Percept:
-        """Gets the information of the cell the agent perceives.
-
-        :param x: The x coordinate of the cell.
-        :param y: The y coordinate of the cell.
-        :return: A percept object with the cell's information.
-        """
-        cell = self._grid[x][y]
-        return Percept(
-            breeze=cell.hasBreeze,
-            stench=cell.hasStench,
-        )
-
     def execute_task(self, agent: Agent, task: Task) -> TaskResult:
         """Executes a task an agent was awarded with.
 
@@ -135,14 +121,20 @@ class Board:
             next_target = task.path[1]
 
             if not is_in_bounds(next_target):
-                return TaskResult(dead=True)
+                agent.dead = True
+                return TaskResult()
 
             agent.x, agent.y = next_target
             cell = self._grid[agent.x][agent.y]
 
+            if cell.hasPit or cell.hasAliveWumpus:
+                agent.dead = True
+
             return TaskResult(
-                dead=cell.hasPit or cell.hasAliveWumpus,
                 gold=cell.hasGold,
+                breeze=cell.hasBreeze,
+                stench=cell.hasStench,
             )
+
         elif task.task_type == TaskType.SHOOT:
             pass
