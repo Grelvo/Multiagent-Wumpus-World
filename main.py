@@ -1,6 +1,6 @@
-from wumpusGame.game import WumpusGame
+from game.core import Game
 
 
 if __name__ == "__main__":
-    game = WumpusGame()
+    game = Game()
     game.start_game()

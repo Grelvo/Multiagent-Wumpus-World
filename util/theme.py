@@ -1,3 +1,4 @@
+# Game element colors
 WUMPUS_COLOR = (150, 0, 0)
 GOLD_COLOR = (255, 215, 0)
 PIT_COLOR = (50, 50, 50)
@@ -7,7 +8,7 @@ BRENCH_COLOR = (181, 146, 211)
 AGENT_COLOR = (40, 214, 30)
 DANGER_COLOR = (255, 127, 39)
 
-# COLORS
+# Colors
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
 DARK_GRAY = (80, 80, 80)

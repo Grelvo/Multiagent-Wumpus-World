@@ -1,9 +1,6 @@
-import json
-
-from wumpusGame.board import Board
-from wumpusGame.agent import Agent
-from wumpusGame.agentManager import AgentManager
-from wumpusGame.task import Task
+from game.board import Board
+from agent.core import Agent
+from agent.manager import AgentManager
 from util.config import WINDOW_SIZE, TILE_SIZE
 from util.theme import *
 
@@ -12,24 +9,42 @@ from enum import Enum
 
 
 class GameMode(Enum):
+    """An enum to hold the different types of game modes the game can have."""
     STEP = 1
     CONTINUOUS = 2
 
 
-class WumpusGame:
+class Game:
+    """Handles user input, game cycles and drawing of the game board.
+
+    :ivar _clock(pygame.time.Clock): The game clock.
+    :ivar _screen: The game screen.
+    :ivar _font(pygame.font.Font): The game font.
+    :ivar _running(bool): Whether the game is running.
+    :ivar _restart(bool): Whether the game should be restarted, after it stops running.
+    :ivar _mode(GameMode): The current game mode.
+    :ivar _step_requested(bool): Whether a game step was requested by the user.
+    :ivar _step_interval(float): The intervall of time that needs to pass in continuous game mode
+        for a game step to happen.
+    :ivar _time_since_last_step(float): The amount of time that passed since the last game step.
+    :ivar _board(Board): The game board.
+    :ivar _agents(list[Agent]): The list of agents that play the game.
+    :ivar _agent_manager(AgentManager): The AgentManger for the agents.
+    :ivar _clear_vision(bool): Whether the user sees the entire board or only what the agents see.
+    """
     def __init__(self):
         pygame.init()
-        self._clock = pygame.time.Clock()
+        self._clock: pygame.time.Clock = pygame.time.Clock()
         self._screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
-        self._font = pygame.font.SysFont(None, 24)
+        self._font: pygame.font.Font = pygame.font.SysFont(None, 24)
 
-        self._running = True
-        self._restart = False
+        self._running: bool = True
+        self._restart: bool = False
 
-        self._mode = GameMode.STEP
-        self._step_requested = False
-        self._step_interval = 0.1
-        self._time_since_last_step = 0
+        self._mode: GameMode = GameMode.STEP
+        self._step_requested: bool = False
+        self._step_interval: float = 0.1
+        self._time_since_last_step: float = 0
 
         self._board: Board = Board()
         self._agents: list[Agent] = [
@@ -38,14 +53,14 @@ class WumpusGame:
             Agent(3),
             Agent(4),
         ]
-        self._agent_manager = AgentManager(self._agents)
+        self._agent_manager: AgentManager = AgentManager(self._agents)
 
         self._clear_vision: bool = False
 
     def start_game(self) -> None:
-        """Starts the Hunt der Wumpus Game"""
+        """Starts the game."""
         self._running = True
-        self._board.setup_board(list(self._agents))
+        self._board.setup_board(self._agents)
 
         for agent in self._agents:
             percept = self._board.get_percept(agent.x, agent.y)
@@ -54,17 +69,18 @@ class WumpusGame:
         self._run()
 
     def _run(self) -> None:
-        """Runs the Game-loop"""
+        """Runs the game-loop."""
         while self._running:
             dt = self._clock.tick(60) / 1000
             self._handle_events()
             self._update(dt)
             self._draw()
+
         if self._restart:
-            self._cleanup()
+            self._restart_game()
 
     def _handle_events(self) -> None:
-        """Handles the User Inputs"""
+        """Handles the user inputs."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._running = False
@@ -88,7 +104,10 @@ class WumpusGame:
                     self._restart = True
 
     def _update(self, dt: float) -> None:
-        """Updates the Game state"""
+        """Updates the game state.
+
+        :param dt: The amount of time between this and the last cycle in seconds.
+        """
         if self._mode == GameMode.STEP and self._step_requested:
             self._step_requested = False
             self._game_step()
@@ -99,7 +118,15 @@ class WumpusGame:
                 self._time_since_last_step = 0
 
     def _game_step(self) -> None:
-        """One Step in the Game"""
+        """One-step cycle of the game, following this Order:
+
+        - Agent-Manager creates tasks.
+        - All agents bid on the created tasks.
+        - Agent-Manager awards a task to each agent.
+        - Each agent executes the awarded task.
+        - Result of the executed task is handled.
+        - Agent perceives information of its cell and updates the shared beliefs.
+        """
         tasks = self._agent_manager.create_tasks(self._board)
 
         bids = self._agent_manager.create_bids(tasks)
@@ -108,12 +135,10 @@ class WumpusGame:
 
         for agent in self._agents:
             if agent.agent_id in awarded_tasks:
-                task = Task(type_="MOVE", target=awarded_tasks[agent.agent_id].target)
-                result = self._board.execute_task(agent, task)
+                result = self._board.execute_task(agent, awarded_tasks[agent.agent_id])
 
                 if result.dead:
                     agent.dead = True
-                    print("someone died")
                 elif result.gold:
                     self._running = False
                     self._restart = True
@@ -122,7 +147,7 @@ class WumpusGame:
                 self._agent_manager.update_beliefs(agent, percept)
 
     def _draw(self) -> None:
-        """Draws the Game Window"""
+        """Draws the game window."""
         self._screen.fill((255, 255, 255))
 
         self._draw_board()
@@ -130,7 +155,7 @@ class WumpusGame:
         pygame.display.flip()
 
     def _draw_board(self):
-        """Draws the Game Board"""
+        """Draws the game board."""
         for cell in self._board.cells:
             rect = pygame.Rect(
                 cell.x * TILE_SIZE,
@@ -168,7 +193,8 @@ class WumpusGame:
                     color = WUMPUS_COLOR
                 elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("pit"):
                     color = PIT_COLOR
-                elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("potential_wumpus") or self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("potential_pit"):
+                elif (self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("potential_wumpus") or
+                      self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("potential_pit")):
                     color = DANGER_COLOR
                 elif (cell.x, cell.y) in self._agent_manager.shared_visited:
                     if cell.hasBreeze and cell.hasStench:
@@ -182,28 +208,6 @@ class WumpusGame:
                 else:
                     color = DARK_GRAY
 
-
-            # if agent:
-            #     color = AGENT_COLOR
-            # elif not self._clear_vision and self._agent_manager.potential_danger((cell.x, cell.y)):
-            #     color = DANGER_COLOR
-            # elif cell.hasAliveWumpus and (self._clear_vision or self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("wumpus")):
-            #     color = WUMPUS_COLOR
-            # elif cell.hasPit and (self._clear_vision or self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("pit")):
-            #     color = PIT_COLOR
-            # elif not self._clear_vision and (cell.x, cell.y) not in self._agent_manager.shared_visited:
-            #     color = DARK_GRAY
-            # elif cell.hasGold:
-            #     color = GOLD_COLOR
-            # elif cell.hasBreeze and cell.hasStench:
-            #     color = BRENCH_COLOR
-            # elif cell.hasBreeze:
-            #     color = BREEZE_COLOR
-            # elif cell.hasStench:
-            #     color = STENCH_COLOR
-            # else:
-            #     color = GRAY
-
             pygame.draw.rect(self._screen, color, rect)
             pygame.draw.rect(self._screen, (50, 50, 50), rect, 1)
 
@@ -212,8 +216,8 @@ class WumpusGame:
                 rect = label.get_rect(center=rect.center)
                 self._screen.blit(label, rect)
 
-    def _cleanup(self):
-        """Clean Up and reset the Game"""
+    def _restart_game(self):
+        """Reset the game state and start a new game."""
         self._restart = False
         self._board.reset()
         self._agent_manager.reset()
