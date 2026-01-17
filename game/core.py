@@ -68,6 +68,17 @@ class Game:
 
         self._run()
 
+    def _restart_game(self) -> None:
+        """Reset the game state and start a new game."""
+        self._restart = False
+
+        self._board.reset()
+        self._agent_manager.reset()
+        for agent in self._agents:
+            agent.reset()
+
+        self.start_game()
+
     def _run(self) -> None:
         """Runs the game-loop."""
         while self._running:
@@ -134,17 +145,19 @@ class Game:
         awarded_tasks = self._agent_manager.award_tasks(bids)
 
         for agent in self._agents:
-            if agent.agent_id in awarded_tasks:
-                result = self._board.execute_task(agent, awarded_tasks[agent.agent_id])
+            if agent.agent_id not in awarded_tasks:
+                continue
 
-                if result.dead:
-                    agent.dead = True
-                elif result.gold:
-                    self._running = False
-                    self._restart = True
+            result = self._board.execute_task(agent, awarded_tasks[agent.agent_id])
 
-                percept = self._board.get_percept(agent.x, agent.y)
-                self._agent_manager.update_beliefs(agent, percept)
+            if result.dead:
+                agent.dead = True
+            elif result.gold:
+                self._running = False
+                self._restart = True
+
+            percept = self._board.get_percept(agent.x, agent.y)
+            self._agent_manager.update_beliefs(agent, percept)
 
     def _draw(self) -> None:
         """Draws the game window."""
@@ -154,7 +167,7 @@ class Game:
 
         pygame.display.flip()
 
-    def _draw_board(self):
+    def _draw_board(self) -> None:
         """Draws the game board."""
         for cell in self._board.cells:
             rect = pygame.Rect(
@@ -215,12 +228,3 @@ class Game:
                 label = self._font.render(f"{agent.agent_id}", True, BLACK)
                 rect = label.get_rect(center=rect.center)
                 self._screen.blit(label, rect)
-
-    def _restart_game(self):
-        """Reset the game state and start a new game."""
-        self._restart = False
-        self._board.reset()
-        self._agent_manager.reset()
-        for agent in self._agents:
-            agent.reset()
-        self.start_game()

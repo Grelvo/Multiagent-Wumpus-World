@@ -149,9 +149,8 @@ class AgentManager:
         """
         awarded_tasks: dict[int, Task] = {}
         for bid, agent_id, task, path in bids:
-            if agent_id not in awarded_tasks and task not in awarded_tasks.values():
-                if path is None:
-                    continue
-                task.path = path
-                awarded_tasks[agent_id] = task
+            if path is None or agent_id  in awarded_tasks or task in awarded_tasks.values():
+                continue
+            task.path = path
+            awarded_tasks[agent_id] = task
         return awarded_tasks
