@@ -63,7 +63,6 @@ class Board:
         for index, cell in enumerate(agent_cells):
             agents[index].x = cell.x
             agents[index].y = cell.y
-            agents[index].visited.append((cell.x, cell.y))
             self.blocked_pos.append((cell.x, cell.y))
 
     def _place_element(self, num: int, place_func: Callable[[Cell], None]) -> None:

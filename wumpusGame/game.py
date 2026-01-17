@@ -1,7 +1,9 @@
+import json
+
 from wumpusGame.board import Board
 from wumpusGame.agent import Agent
 from wumpusGame.agentManager import AgentManager
-from wumpusGame.task import ExplorationTask, Task
+from wumpusGame.task import Task
 from util.config import WINDOW_SIZE, TILE_SIZE
 from util.theme import *
 
@@ -30,21 +32,25 @@ class WumpusGame:
         self._time_since_last_step = 0
 
         self._board: Board = Board()
-        self._agent_manager = AgentManager()
         self._agents: list[Agent] = [
             Agent(1),
             Agent(2),
             Agent(3),
             Agent(4),
-            Agent(0),
         ]
-        self._selected_agent_id: int | None = None
+        self._agent_manager = AgentManager(self._agents)
+
         self._clear_vision: bool = False
 
     def start_game(self) -> None:
         """Starts the Hunt der Wumpus Game"""
         self._running = True
         self._board.setup_board(list(self._agents))
+
+        for agent in self._agents:
+            percept = self._board.get_percept(agent.x, agent.y)
+            self._agent_manager.update_beliefs(agent, percept)
+
         self._run()
 
     def _run(self) -> None:
@@ -54,7 +60,7 @@ class WumpusGame:
             self._handle_events()
             self._update(dt)
             self._draw()
-        if self._restart == True:
+        if self._restart:
             self._cleanup()
 
     def _handle_events(self) -> None:
@@ -75,13 +81,6 @@ class WumpusGame:
                     else:
                         self._mode = GameMode.STEP
                         self._time_since_last_step = 0
-                elif pygame.K_0 <= event.key <= pygame.K_9:
-                    num = event.key - pygame.K_0
-                    if any(agent.agent_id == num for agent in self._agents):
-                        if self._selected_agent_id == num:
-                            self._selected_agent_id = None
-                        else:
-                            self._selected_agent_id = num
                 elif event.key == pygame.K_c:
                     self._clear_vision = not self._clear_vision
                 elif event.key == pygame.K_r:
@@ -89,7 +88,7 @@ class WumpusGame:
                     self._restart = True
 
     def _update(self, dt: float) -> None:
-        """Updates the Gamestate"""
+        """Updates the Game state"""
         if self._mode == GameMode.STEP and self._step_requested:
             self._step_requested = False
             self._game_step()
@@ -101,16 +100,9 @@ class WumpusGame:
 
     def _game_step(self) -> None:
         """One Step in the Game"""
-        for agent in self._agents:
-            if agent.dead:
-                continue
+        tasks = self._agent_manager.create_tasks(self._board)
 
-            percept = self._board.get_percept(agent.x, agent.y)
-            agent.update_belief(percept)
-
-        tasks = self._agent_manager.create_tasks(self._agents, self._board)
-
-        bids = self._agent_manager.create_bids(self._agents, tasks)
+        bids = self._agent_manager.create_bids(tasks)
 
         awarded_tasks = self._agent_manager.award_tasks(bids)
 
@@ -121,9 +113,13 @@ class WumpusGame:
 
                 if result.dead:
                     agent.dead = True
+                    print("someone died")
                 elif result.gold:
                     self._running = False
                     self._restart = True
+
+                percept = self._board.get_percept(agent.x, agent.y)
+                self._agent_manager.update_beliefs(agent, percept)
 
     def _draw(self) -> None:
         """Draws the Game Window"""
@@ -147,29 +143,66 @@ class WumpusGame:
                 (agent for agent in self._agents if agent.x == cell.x and agent.y == cell.y and not agent.dead),
                 None
             )
-            selected_agent = next(
-                (agent for agent in self._agents if agent.agent_id == self._selected_agent_id),
-                None
-            )
 
-            if agent:
-                color = AGENT_COLOR
-            elif not self._clear_vision and (self._selected_agent_id is None and not any((cell.x, cell.y) in agent.visited for agent in self._agents) or self._selected_agent_id is not None and (cell.x, cell.y) not in selected_agent.visited):
-                color = DARK_GRAY
-            elif cell.hasAliveWumpus:
-                color = WUMPUS_COLOR
-            elif cell.hasPit:
-                color = PIT_COLOR
-            elif cell.hasGold:
-                color = GOLD_COLOR
-            elif cell.hasBreeze and cell.hasStench:
-                color = BRENCH_COLOR
-            elif cell.hasBreeze:
-                color = BREEZE_COLOR
-            elif cell.hasStench:
-                color = STENCH_COLOR
+            if self._clear_vision:
+                if agent:
+                    color = AGENT_COLOR
+                elif cell.hasAliveWumpus:
+                    color = WUMPUS_COLOR
+                elif cell.hasPit:
+                    color = PIT_COLOR
+                elif cell.hasGold:
+                    color = GOLD_COLOR
+                elif cell.hasBreeze and cell.hasStench:
+                    color = BRENCH_COLOR
+                elif cell.hasBreeze:
+                    color = BREEZE_COLOR
+                elif cell.hasStench:
+                    color = STENCH_COLOR
+                else:
+                    color = GRAY
             else:
-                color = GRAY
+                if agent:
+                    color = AGENT_COLOR
+                elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("wumpus"):
+                    color = WUMPUS_COLOR
+                elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("pit"):
+                    color = PIT_COLOR
+                elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("potential_wumpus") or self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("potential_pit"):
+                    color = DANGER_COLOR
+                elif (cell.x, cell.y) in self._agent_manager.shared_visited:
+                    if cell.hasBreeze and cell.hasStench:
+                        color = BRENCH_COLOR
+                    elif cell.hasBreeze:
+                        color = BREEZE_COLOR
+                    elif cell.hasStench:
+                        color = STENCH_COLOR
+                    else:
+                        color = GRAY
+                else:
+                    color = DARK_GRAY
+
+
+            # if agent:
+            #     color = AGENT_COLOR
+            # elif not self._clear_vision and self._agent_manager.potential_danger((cell.x, cell.y)):
+            #     color = DANGER_COLOR
+            # elif cell.hasAliveWumpus and (self._clear_vision or self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("wumpus")):
+            #     color = WUMPUS_COLOR
+            # elif cell.hasPit and (self._clear_vision or self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("pit")):
+            #     color = PIT_COLOR
+            # elif not self._clear_vision and (cell.x, cell.y) not in self._agent_manager.shared_visited:
+            #     color = DARK_GRAY
+            # elif cell.hasGold:
+            #     color = GOLD_COLOR
+            # elif cell.hasBreeze and cell.hasStench:
+            #     color = BRENCH_COLOR
+            # elif cell.hasBreeze:
+            #     color = BREEZE_COLOR
+            # elif cell.hasStench:
+            #     color = STENCH_COLOR
+            # else:
+            #     color = GRAY
 
             pygame.draw.rect(self._screen, color, rect)
             pygame.draw.rect(self._screen, (50, 50, 50), rect, 1)
@@ -183,6 +216,7 @@ class WumpusGame:
         """Clean Up and reset the Game"""
         self._restart = False
         self._board.reset()
+        self._agent_manager.reset()
         for agent in self._agents:
             agent.reset()
         self.start_game()
