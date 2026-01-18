@@ -4,7 +4,7 @@ class Cell:
     :ivar x (int): The x coordinate of the cell
     :ivar y (int): The y coordinate of the cell
     :ivar hasPit (bool): Whether the cell contains a Pit
-    :ivar hasAliveWumpus (bool): Whether the cell contains a Wumpus, that is alive
+    :ivar hasWumpus (bool): Whether the cell contains a Wumpus, that is alive
     :ivar hasDeadWumpus (bool): Whether the cell contains a Wumpus, that is dead
     :ivar hasStench (bool): Whether the cell contains a stench
     :ivar hasBreeze (bool): Whether the cell contains a breeze
@@ -15,7 +15,7 @@ class Cell:
         self.y: int = y
 
         self.hasPit: bool = False
-        self.hasAliveWumpus: bool = False
+        self.hasWumpus: bool = False
         self.hasDeadWumpus: bool = False
 
         self.hasStench: bool = False

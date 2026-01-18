@@ -1,4 +1,4 @@
-from agent.task import Task, MoveTask, TaskResult
+from agent.task import Task, MoveTask, ShootTask, TaskResult
 from agent.core import Agent
 from game.board import Board
 from util.helperFunc import get_neighbours
@@ -41,9 +41,18 @@ class AgentManager:
 
         neighbors = get_neighbours(agent.x, agent.y)
 
+        if result.wumpus_died:
+            self.shared_beliefs.setdefault(result.wumpus_died, {}).update({
+                "wumpus": False,
+                "dead_wumpus": True,
+            })
+
         if result.stench or result.breeze:
             potential_danger_group = []
             for nx, ny in neighbors:
+                if self.shared_beliefs.get((nx, ny), {}).get("wumpus") or self.shared_beliefs.get((nx, ny), {}).get("dead_wumpus") or self.shared_beliefs.get((nx, ny), {}).get("pit"):
+                    potential_danger_group.append((nx, ny))
+                    continue
                 if (nx, ny) in self.shared_visited:
                     continue
 
@@ -64,6 +73,9 @@ class AgentManager:
                     "potential_wumpus": result.stench,
                 })
                 potential_danger_group.append((nx, ny))
+
+            if all(self.shared_beliefs.get((pdx, pdy), {}).get("wumpus") or self.shared_beliefs.get((pdx, pdy), {}).get("dead_wumpus") or self.shared_beliefs.get((pdx, pdy), {}).get("pit") for (pdx, pdy) in potential_danger_group):
+                return
 
             if len(potential_danger_group) == 1:
                 potential_pit = self.shared_beliefs.get(potential_danger_group[0], {}).get("potential_pit")
@@ -96,12 +108,13 @@ class AgentManager:
                     group.remove((nx, ny))
 
                     if len(group) == 1:
-                        self.shared_beliefs[group[0]].update({
-                            "potential_pit": False,
-                            "potential_wumpus": False,
-                            "pit": potential_pit,
-                            "wumpus": potential_wumpus,
-                        })
+                        if not (self.shared_beliefs.get(group[0], {}).get("wumpus") or self.shared_beliefs.get(group[0], {}).get("dead_wumpus") or self.shared_beliefs.get(group[0], {}).get("pit")):
+                            self.shared_beliefs[group[0]].update({
+                                "potential_pit": False,
+                                "potential_wumpus": False,
+                                "pit": potential_pit,
+                                "wumpus": potential_wumpus,
+                            })
                         self._potential_danger_groups.remove(group)
 
     def create_tasks(self, board: Board) -> list[Task]:
@@ -110,12 +123,20 @@ class AgentManager:
         :param board: The Board of the Game.
         :return: The list of created tasks.
         """
-        unexplored_cells = [
-            cell for cell in board.cells
+        tasks = []
+
+        exploration_tasks = [
+            MoveTask((cell.x, cell.y)) for cell in board.cells
             if not (cell.x, cell.y) in self.shared_visited
         ]
+        tasks.extend(exploration_tasks)
 
-        tasks = [MoveTask((cell.x, cell.y)) for cell in unexplored_cells]
+        shoot_tasks = [
+            ShootTask((bx, by)) for (bx, by) in self.shared_beliefs.keys()
+            if self.shared_beliefs.get((bx, by), {}).get("wumpus")
+        ]
+        tasks.extend(shoot_tasks)
+
         return tasks
 
     def create_bids(self, tasks: list[Task]) -> list[tuple[float, int, Task, list[tuple[int, int]]]]:

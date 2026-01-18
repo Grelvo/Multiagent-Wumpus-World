@@ -18,20 +18,20 @@ class GameMode(Enum):
 class Game:
     """Handles user input, game cycles and drawing of the game board.
 
-    :ivar _clock(pygame.time.Clock): The game clock.
+    :ivar _clock (pygame.time.Clock): The game clock.
     :ivar _screen: The game screen.
-    :ivar _font(pygame.font.Font): The game font.
-    :ivar _running(bool): Whether the game is running.
-    :ivar _restart(bool): Whether the game should be restarted, after it stops running.
-    :ivar _mode(GameMode): The current game mode.
-    :ivar _step_requested(bool): Whether a game step was requested by the user.
-    :ivar _step_interval(float): The intervall of time that needs to pass in continuous game mode
+    :ivar _font (pygame.font.Font): The game font.
+    :ivar _running (bool): Whether the game is running.
+    :ivar _restart (bool): Whether the game should be restarted, after it stops running.
+    :ivar _mode (GameMode): The current game mode.
+    :ivar _step_requested (bool): Whether a game step was requested by the user.
+    :ivar _step_interval (float): The intervall of time that needs to pass in continuous game mode
         for a game step to happen.
-    :ivar _time_since_last_step(float): The amount of time that passed since the last game step.
-    :ivar _board(Board): The game board.
-    :ivar _agents(list[Agent]): The list of agents that play the game.
-    :ivar _agent_manager(AgentManager): The AgentManger for the agents.
-    :ivar _clear_vision(bool): Whether the user sees the entire board or only what the agents see.
+    :ivar _time_since_last_step (float): The amount of time that passed since the last game step.
+    :ivar _board (Board): The game board.
+    :ivar _agents (list[Agent]): The list of agents that play the game.
+    :ivar _agent_manager (AgentManager): The AgentManger for the agents.
+    :ivar _clear_vision (bool): Whether the user sees the entire board or only what the agents see.
     """
     def __init__(self):
         pygame.init()
@@ -182,8 +182,10 @@ class Game:
             if self._clear_vision:
                 if agent:
                     color = AGENT_COLOR
-                elif cell.hasAliveWumpus:
+                elif cell.hasWumpus:
                     color = WUMPUS_COLOR
+                elif cell.hasDeadWumpus:
+                    color = DEAD_WUMPUS_COLOR
                 elif cell.hasPit:
                     color = PIT_COLOR
                 elif cell.hasGold:
@@ -199,13 +201,15 @@ class Game:
             else:
                 if agent:
                     color = AGENT_COLOR
-                elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("wumpus"):
-                    color = WUMPUS_COLOR
-                elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("pit"):
-                    color = PIT_COLOR
                 elif (self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("potential_wumpus") or
                       self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("potential_pit")):
                     color = DANGER_COLOR
+                elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("wumpus"):
+                    color = WUMPUS_COLOR
+                elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("dead_wumpus"):
+                    color = DEAD_WUMPUS_COLOR
+                elif self._agent_manager.shared_beliefs.get((cell.x, cell.y), {}).get("pit"):
+                    color = PIT_COLOR
                 elif (cell.x, cell.y) in self._agent_manager.shared_visited:
                     if cell.hasBreeze and cell.hasStench:
                         color = BRENCH_COLOR

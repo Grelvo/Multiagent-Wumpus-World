@@ -1,5 +1,6 @@
 # Game element colors
 WUMPUS_COLOR = (150, 0, 0)
+DEAD_WUMPUS_COLOR = (90, 0, 0)
 GOLD_COLOR = (255, 215, 0)
 PIT_COLOR = (50, 50, 50)
 BREEZE_COLOR = (173, 216, 230)

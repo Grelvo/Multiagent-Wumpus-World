@@ -10,6 +10,7 @@ class Agent:
     :ivar agent_id (int): The unique id of the agent.
     :ivar x (int): The x coordinate of the agent.
     :ivar y (int): The y coordinate of the agent.
+    :ivar has_arrow (bool): Whether the agent has an arrow
     :ivar dead (bool): Whether the agent is dead.
     """
     def __init__(self, agent_id: int):
@@ -18,12 +19,16 @@ class Agent:
         self.x: int | None = None
         self.y: int | None = None
 
+        self.has_arrow = True
+
         self.dead = False
 
     def reset(self) -> None:
         """Resets the agent back to its initial state."""
         self.x = None
         self.y = None
+
+        self.has_arrow = True
 
         self.dead = False
 
@@ -43,17 +48,14 @@ class Agent:
 
         if task.task_type == TaskType.MOVE:
             path = self._reconstruct_bfs_path(came_from, task.target)
+        elif task.task_type == TaskType.SHOOT and self.has_arrow:
+            path = self._nearest_aligned_cell_path(came_from, task.target)
 
-            if path is None:
-                return bid, path
+        if path is None:
+            return bid, path
 
-            path_length = len(path)
-            bid = task.reward - path_length
-
-        elif task.task_type == TaskType.SHOOT:
-            path = self._reconstruct_bfs_path(came_from, task.target)
-            path_length = len(path)
-            bid = task.reward - path_length
+        path_length = len(path)
+        bid = task.reward - path_length
 
         return bid, path
 
@@ -105,3 +107,30 @@ class Agent:
             cur = came_from[cur]
 
         return list(reversed(path))
+
+    def _nearest_aligned_cell_path(self, came_from: dict[tuple[int, int], tuple[int, int]], goal: tuple[int, int]) \
+            -> list[tuple[int, int]] | None:
+        """Gives the path to the nearest cell that is in the same row or column as the goal.
+
+        :param came_from: The Network of Paths from its current position to any other.
+        :param goal: The position of which the agent wants to be in the same row or column.
+        :return: The shortest path to reach a cell aligned to the goal.
+        """
+        tx, ty = goal
+        aligned_positions = []
+
+        for (x, y) in came_from.keys():
+            if x == tx or y == ty:
+                aligned_positions.append((x, y))
+
+        shortest_path: list[tuple[int, int]] | None = None
+        for pos in aligned_positions:
+            path = self._reconstruct_bfs_path(came_from, pos)
+
+            if path is None:
+                continue
+
+            if shortest_path is None or len(path) < len(shortest_path):
+                shortest_path = path
+
+        return shortest_path

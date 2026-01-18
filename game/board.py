@@ -47,7 +47,7 @@ class Board:
 
         for cell in self.cells:
             neighbours = get_neighbours(cell.x, cell.y)
-            cell.hasStench = any(self._grid[nx][ny].hasAliveWumpus for nx, ny in neighbours)
+            cell.hasStench = any(self._grid[nx][ny].hasWumpus for nx, ny in neighbours)
             cell.hasBreeze = any(self._grid[nx][ny].hasPit for nx, ny in neighbours)
 
         agent_cells: list[Cell] = random.sample(self._get_available_cells(), len(agents))
@@ -71,7 +71,7 @@ class Board:
 
         :param cell: The cell where the wumpus should be placed.
         """
-        cell.hasAliveWumpus = True
+        cell.hasWumpus = True
 
     @staticmethod
     def _place_pit(cell: Cell) -> None:
@@ -96,7 +96,7 @@ class Board:
         """
         return [
             cell for cell in self.cells
-            if not cell.hasAliveWumpus
+            if not cell.hasWumpus
             and not cell.hasPit
             and not cell.hasGold
             and not cell.hasBreeze
@@ -117,7 +117,7 @@ class Board:
         :param task: The task that needs to execute.
         :return: The result of the agent trying to complete that task.
         """
-        if task.task_type == TaskType.MOVE:
+        if task.task_type == TaskType.MOVE or (task.task_type == TaskType.SHOOT and len(task.path) > 1):
             next_target = task.path[1]
 
             if not is_in_bounds(next_target):
@@ -127,7 +127,7 @@ class Board:
             agent.x, agent.y = next_target
             cell = self._grid[agent.x][agent.y]
 
-            if cell.hasPit or cell.hasAliveWumpus:
+            if cell.hasPit or cell.hasWumpus:
                 agent.dead = True
 
             return TaskResult(
@@ -136,5 +136,32 @@ class Board:
                 stench=cell.hasStench,
             )
 
-        elif task.task_type == TaskType.SHOOT:
-            pass
+        elif task.task_type == TaskType.SHOOT and len(task.path) == 1:
+            agent.has_arrow = False
+
+            tx, ty = task.target
+            dx, dy = (tx > agent.x) - (tx < agent.x), (ty > agent.y) - (ty < agent.y)
+            cur_x, cur_y = agent.x, agent.y
+
+            wumpus_dead: tuple[int, int] | None = None
+
+            while True:
+                cur_x += dx
+                cur_y += dy
+
+                if not is_in_bounds((cur_x, cur_y)):
+                    break
+
+                cur_cell = self._grid[cur_x][cur_y]
+                if cur_cell.hasWumpus:
+                    wumpus_dead = (cur_x, cur_y)
+                    cur_cell.hasWumpus = False
+                    cur_cell.hasDeadWumpus = True
+                    break
+
+            agent_cell = self._grid[agent.x][agent.y]
+            return TaskResult(
+                breeze=agent_cell.hasBreeze,
+                stench=agent_cell.hasStench,
+                wumpus_died=wumpus_dead,
+            )

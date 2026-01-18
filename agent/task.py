@@ -37,10 +37,13 @@ class ShootTask(Task):
 class TaskResult:
     """The result of a task.
 
-    :ivar dead (bool): Whether the agent died as a result of the task.
+    :ivar breeze (bool): Whether the agent is on a breeze after the task.
+    :ivar stench (bool): Whether the agent is on a stench after the task.
     :ivar gold (bool): Whether the agent found gold as a result of the task.
+    :ivar wumpus_died (tuple[int, int] | None): The position of a wumpus that died as a result of the task.
     """
-    def __init__(self, breeze=False, stench=False, gold=False):
+    def __init__(self, breeze=False, stench=False, gold=False, wumpus_died=None):
         self.breeze: bool = breeze
         self.stench: bool = stench
         self.gold: bool = gold
+        self.wumpus_died: tuple[int, int] | None = wumpus_died
