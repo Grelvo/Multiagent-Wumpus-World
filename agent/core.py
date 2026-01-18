@@ -2,6 +2,7 @@ from agent.task import Task, TaskType
 from util.helperFunc import get_neighbours
 
 from collections import deque
+import heapq
 
 
 class Agent:
@@ -32,30 +33,33 @@ class Agent:
 
         self.dead = False
 
-    def bid_for_task(self, task: Task, came_from: dict[tuple[int, int], tuple[int, int]]) \
-            -> tuple[float, list[tuple[int, int]] | None]:
+    def bid_for_task(self, task: Task, came_from: dict[tuple[int, int], tuple[int, int]],
+                     cost_so_far: dict[tuple[int, int], int]) -> tuple[float, list[tuple[int, int]] | None]:
         """Creates a bid value for a task and the path towards completing it.
 
         :param task: The task on which needs to be bid.
-        :param came_from: The Network of Paths from its current Position to any other.
+        :param came_from: The network of paths from its current position to any other.
+        :param cost_so_far: A dict with the positions and the cost of getting to it.
         :return: The bid value for the task and the path for it.
         """
         bid = -float('inf')
         path = None
+        cost = float('inf')
 
         if self.dead:
             return bid, path
 
         if task.task_type == TaskType.MOVE:
-            path = self._reconstruct_bfs_path(came_from, task.target)
+            path = self._reconstruct_path(came_from, task.target)
+            cost = cost_so_far[task.target]
         elif task.task_type == TaskType.SHOOT and self.has_arrow:
             path = self._nearest_aligned_cell_path(came_from, task.target)
+            cost = cost_so_far[path[len(path) - 1]]
 
         if path is None:
             return bid, path
 
-        path_length = len(path)
-        bid = task.reward - path_length
+        bid = task.reward - cost
 
         return bid, path
 
@@ -88,8 +92,46 @@ class Agent:
 
         return came_from
 
+    def create_dijkstra_paths(self, beliefs: dict[tuple[int, int], dict[str, bool]]) \
+            -> tuple[dict[tuple[int, int], tuple[int, int]], dict[tuple[int, int], int]]:
+        """Creates a Network of Paths from its current position to any other on the board.
+
+        :param beliefs: The current beliefs the agents have on the board.
+        :return: The Network of Paths and the cost to travel to each cell
+        """
+
+        start = (self.x, self.y)
+        frontier = [(0, start)]
+
+        came_from: dict[tuple[int, int], tuple[int, int]] = {start: None}
+        cost_so_far: dict[tuple[int, int], int] = {start: 0}
+
+        while frontier:
+            current_cost, (x, y) = heapq.heappop(frontier)
+
+            neighbours = get_neighbours(x, y)
+            for nx, ny in neighbours:
+                cell_info = beliefs.get((nx, ny), {})
+
+                if cell_info.get("pit") or cell_info.get("wumpus"):
+                    continue
+
+                if cell_info.get("potential_pit") or cell_info.get("potential_wumpus"):
+                    step_cost = 1000
+                else:
+                    step_cost = 1
+
+                new_cost = current_cost + step_cost
+
+                if (nx, ny) not in cost_so_far or new_cost < cost_so_far.get((nx, ny)):
+                    cost_so_far[(nx, ny)] = new_cost
+                    came_from[(nx, ny)] = (x, y)
+                    heapq.heappush(frontier, (new_cost, (nx, ny)))
+
+        return came_from, cost_so_far
+
     @staticmethod
-    def _reconstruct_bfs_path(came_from: dict[tuple[int, int], tuple[int, int]], goal: tuple[int, int]) \
+    def _reconstruct_path(came_from: dict[tuple[int, int], tuple[int, int]], goal: tuple[int, int]) \
             -> list[tuple[int, int]] | None:
         """Reconstructs the shortest path from its current position to the goal.
 
@@ -106,7 +148,8 @@ class Agent:
             path.append(cur)
             cur = came_from[cur]
 
-        return list(reversed(path))
+        path.reverse()
+        return path
 
     def _nearest_aligned_cell_path(self, came_from: dict[tuple[int, int], tuple[int, int]], goal: tuple[int, int]) \
             -> list[tuple[int, int]] | None:
@@ -125,7 +168,7 @@ class Agent:
 
         shortest_path: list[tuple[int, int]] | None = None
         for pos in aligned_positions:
-            path = self._reconstruct_bfs_path(came_from, pos)
+            path = self._reconstruct_path(came_from, pos)
 
             if path is None:
                 continue

@@ -134,6 +134,8 @@ class Board:
                 gold=cell.hasGold,
                 breeze=cell.hasBreeze,
                 stench=cell.hasStench,
+                pit=cell.hasPit,
+                wumpus=cell.hasWumpus,
             )
 
         elif task.task_type == TaskType.SHOOT and len(task.path) == 1:

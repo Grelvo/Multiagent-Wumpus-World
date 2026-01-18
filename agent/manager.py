@@ -37,6 +37,10 @@ class AgentManager:
         self.shared_beliefs.setdefault((agent.x, agent.y), {}).update({
             "breeze": result.breeze,
             "stench": result.stench,
+            "potential_pit": False,
+            "potential_wumpus": False,
+            "pit": result.pit,
+            "wumpus": result.wumpus,
         })
 
         neighbors = get_neighbours(agent.x, agent.y)
@@ -125,11 +129,13 @@ class AgentManager:
         """
         tasks = []
 
-        exploration_tasks = [
+        move_tasks = [
             MoveTask((cell.x, cell.y)) for cell in board.cells
             if not (cell.x, cell.y) in self.shared_visited
+            and not self.shared_beliefs.get((cell.x, cell.y), {}).get("wumpus")
+            and not self.shared_beliefs.get((cell.x, cell.y), {}).get("pit")
         ]
-        tasks.extend(exploration_tasks)
+        tasks.extend(move_tasks)
 
         shoot_tasks = [
             ShootTask((bx, by)) for (bx, by) in self.shared_beliefs.keys()
@@ -150,9 +156,9 @@ class AgentManager:
             if agent.dead:
                 continue
 
-            came_from = agent.create_bfs_paths(self.shared_beliefs)
+            came_from, cost_so_far = agent.create_dijkstra_paths(self.shared_beliefs)
             for task in tasks:
-                bid, path = agent.bid_for_task(task, came_from)
+                bid, path = agent.bid_for_task(task, came_from, cost_so_far)
                 bids.append((bid, agent.agent_id, task, path))
 
         bids.sort(reverse=True, key=lambda x: x[0])
