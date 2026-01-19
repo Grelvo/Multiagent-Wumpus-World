@@ -18,14 +18,15 @@ class Statistics:
         if self._cycles == 0:
             return
 
-        with open(f'../Intelligente-Softwareagenten/statistic/statistics/{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}-cycles-{self._cycles}', 'x') as f:
-            f.write('Total amounts: \n')
-            f.write('   amount of cycles: %d \n' % self._cycles)
-            f.write('   number of steps: %d \n' % self._steps)
-            f.write('   number of deaths: %d \n' % self._deaths)
-            f.write('   amount of explored cells: %d \n' % self._cells_explored)
-            f.write('Average amounts per cycle: \n')
-            f.write('   average number of steps: %f \n' % round(self._steps/self._cycles, 2))
-            f.write('   average number of deaths: %f \n' % round(self._deaths/self._cycles, 2))
-            f.write('   average amount of explored cells: %f \n' % round(self._cells_explored/self._cycles, 2))
-            f.close()
+        with open(f'../Intelligente-Softwareagenten/statistic/statistics/'
+                  f'{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}-cycles-{self._cycles}', 'x') as f:
+            f.write(f'Total amounts: \n'
+                    f'   amount of cycles: {self._cycles} \n'
+                    f'   number of steps: {self._steps} \n'
+                    f'   number of deaths: {self._deaths} \n'
+                    f'   amount of explored cells: {self._cells_explored} \n'
+                    f'Average amounts per cycle: \n'
+                    f'   average number of steps: {round(self._steps/self._cycles, 2)} \n'
+                    f'   average number of deaths: {round(self._deaths/self._cycles, 2)} \n'
+                    f'   average amount of explored cells: {round(self._cells_explored/self._cycles, 2)} \n'
+                    )
