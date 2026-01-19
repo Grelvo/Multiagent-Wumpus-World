@@ -8,5 +8,5 @@ if __name__ == "__main__":
     parser.add_argument("--statistics", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
-    game = Game()
+    game = Game(args.statistics)
     game.start_game()

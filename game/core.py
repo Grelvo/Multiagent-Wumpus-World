@@ -2,6 +2,7 @@ from agent.core import Agent
 from agent.manager import AgentManager
 from agent.task import TaskResult
 from game.board import Board
+from statistic.core import Statistics
 from util.config import WINDOW_SIZE, TILE_SIZE
 from util.theme import *
 
@@ -33,7 +34,7 @@ class Game:
     :ivar _agent_manager (AgentManager): The AgentManger for the agents.
     :ivar _clear_vision (bool): Whether the user sees the entire board or only what the agents see.
     """
-    def __init__(self):
+    def __init__(self, is_statistic_enabled: bool):
         pygame.init()
         self._clock: pygame.time.Clock = pygame.time.Clock()
         self._screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
@@ -58,6 +59,10 @@ class Game:
         self._agent_manager: AgentManager = AgentManager(self._agents)
 
         self._clear_vision: bool = False
+
+        self._is_statistic_enabled: bool = is_statistic_enabled
+        self._statistic: Statistics = Statistics()
+        self._game_steps: int = 0
 
     def start_game(self) -> None:
         """Starts the game."""
@@ -89,7 +94,11 @@ class Game:
             self._draw()
 
         if self._restart:
+            self._statistic.update(self._game_steps, sum(agent.dead for agent in self._agents), len(self._agent_manager.shared_visited))
+
             self._restart_game()
+        elif self._is_statistic_enabled:
+            self._statistic.create_file()
 
     def _handle_events(self) -> None:
         """Handles the user inputs."""
@@ -139,6 +148,8 @@ class Game:
         - Result of the executed task is handled.
         - Agent perceives information of its cell and updates the shared beliefs.
         """
+        self._game_steps += 1
+
         tasks = self._agent_manager.create_tasks(self._board)
 
         bids = self._agent_manager.create_bids(tasks)
