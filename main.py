@@ -2,5 +2,5 @@ from game.core import Game
 
 
 if __name__ == "__main__":
-    game = Game()
+    game = Game(True)
     game.start_game()
