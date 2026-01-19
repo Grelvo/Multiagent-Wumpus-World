@@ -3,7 +3,7 @@ from agent.manager import AgentManager
 from agent.task import TaskResult
 from game.board import Board
 from statistic.core import Statistics
-from util.config import WINDOW_SIZE, TILE_SIZE
+from util.config import *
 from util.theme import *
 
 import pygame
@@ -34,7 +34,7 @@ class Game:
     :ivar _agent_manager (AgentManager): The AgentManger for the agents.
     :ivar _clear_vision (bool): Whether the user sees the entire board or only what the agents see.
     """
-    def __init__(self, is_statistic_enabled: bool):
+    def __init__(self):
         pygame.init()
         self._clock: pygame.time.Clock = pygame.time.Clock()
         self._screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
@@ -60,7 +60,6 @@ class Game:
 
         self._clear_vision: bool = False
 
-        self._is_statistic_enabled: bool = is_statistic_enabled
         self._statistic: Statistics = Statistics()
         self._game_steps: int = 0
 
@@ -78,6 +77,8 @@ class Game:
         """Reset the game state and start a new game."""
         self._restart = False
 
+        self._game_steps = 0
+
         self._board.reset()
         self._agent_manager.reset()
         for agent in self._agents:
@@ -93,11 +94,11 @@ class Game:
             self._update(dt)
             self._draw()
 
-        if self._restart:
+        if self._restart and self._statistic.get_cycles() < MAX_CYCLES:
             self._statistic.update(self._game_steps, sum(agent.dead for agent in self._agents), len(self._agent_manager.shared_visited))
 
             self._restart_game()
-        elif self._is_statistic_enabled:
+        elif STATISTICS_ENABLED:
             self._statistic.create_file()
 
     def _handle_events(self) -> None:
@@ -156,6 +157,12 @@ class Game:
 
         awarded_tasks = self._agent_manager.award_tasks(bids)
 
+        if not awarded_tasks:
+            self._statistic.increase_stuck_amount()
+            self._running = False
+            self._restart = True
+            return
+
         for agent in self._agents:
             if agent.agent_id not in awarded_tasks:
                 continue
@@ -165,6 +172,7 @@ class Game:
             if result.gold:
                 self._running = False
                 self._restart = True
+                return
 
             self._agent_manager.update_beliefs(agent, result)
 

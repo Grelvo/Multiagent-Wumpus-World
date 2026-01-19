@@ -10,4 +10,8 @@ NUM_GOLD = 1
 
 # Strategy
 SHOOT = True
-RISKY = True
+RISKY = False
+
+# Statistic
+STATISTICS_ENABLED = True
+MAX_CYCLES = 100

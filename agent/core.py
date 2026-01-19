@@ -51,14 +51,15 @@ class Agent:
 
         if task.task_type == TaskType.MOVE:
             path = self._reconstruct_path(came_from, task.target)
+            if path is None:
+                return bid, path
             cost = cost_so_far.get(task.target, float('inf'))
 
         elif task.task_type == TaskType.SHOOT and self.has_arrow:
             path = self._nearest_aligned_cell_path(came_from, task.target)
+            if path is None:
+                return bid, path
             cost = cost_so_far.get((path[len(path) - 1]), float('inf'))
-
-        if path is None:
-            return bid, path
 
         bid = task.reward - cost
 
