@@ -23,7 +23,7 @@ class AgentManager:
 
     def reset(self) -> None:
         """Resets the Agent-Manager back to its initial state."""
-        self.shared_visited = set()
+        self.shared_visited.clear()
         self.shared_beliefs = {}
         self._potential_danger_groups = []
 

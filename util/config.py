@@ -9,9 +9,9 @@ NUM_WUMPUS = 3
 NUM_GOLD = 1
 
 # Strategy
-SHOOT = True
-RISKY = False
+SHOOT = False
+RISKY = True
 
 # Statistic
 STATISTICS_ENABLED = True
-MAX_CYCLES = 100
+MAX_CYCLES = 10

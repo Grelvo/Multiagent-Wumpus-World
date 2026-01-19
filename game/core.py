@@ -63,15 +63,13 @@ class Game:
         self._statistic: Statistics = Statistics()
         self._game_steps: int = 0
 
-    def start_game(self) -> None:
-        """Starts the game."""
+    def _setup_game(self) -> None:
+        """Sets up the game."""
         self._running = True
         self._board.setup_board(self._agents)
 
         for agent in self._agents:
             self._agent_manager.update_beliefs(agent, TaskResult())
-
-        self._run()
 
     def _restart_game(self) -> None:
         """Reset the game state and start a new game."""
@@ -84,7 +82,27 @@ class Game:
         for agent in self._agents:
             agent.reset()
 
-        self.start_game()
+    def start_game(self) -> None:
+        while True:
+            self._setup_game()
+            self._run()
+
+            self._statistic.update(
+                self._game_steps,
+                sum(agent.dead for agent in self._agents),
+                len(self._agent_manager.shared_visited)
+            )
+
+            if self._statistic.get_cycles() % 50 == 0 and STATISTICS_ENABLED:
+                print(self._statistic.get_cycles())
+
+            if not self._restart or self._statistic.get_cycles() >= MAX_CYCLES:
+                break
+
+            self._restart_game()
+
+        if STATISTICS_ENABLED:
+            self._statistic.create_file()
 
     def _run(self) -> None:
         """Runs the game-loop."""
@@ -93,13 +111,6 @@ class Game:
             self._handle_events()
             self._update(dt)
             self._draw()
-
-        if self._restart and self._statistic.get_cycles() < MAX_CYCLES:
-            self._statistic.update(self._game_steps, sum(agent.dead for agent in self._agents), len(self._agent_manager.shared_visited))
-
-            self._restart_game()
-        elif STATISTICS_ENABLED:
-            self._statistic.create_file()
 
     def _handle_events(self) -> None:
         """Handles the user inputs."""
