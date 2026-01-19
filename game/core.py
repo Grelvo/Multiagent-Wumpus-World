@@ -43,6 +43,7 @@ class Game:
         self._restart: bool = False
 
         self._mode: GameMode = GameMode.STEP
+
         self._step_requested: bool = False
         self._step_interval: float = 0.1
         self._time_since_last_step: float = 0

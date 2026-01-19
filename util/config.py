@@ -6,4 +6,8 @@ WINDOW_SIZE = GRID_SIZE * TILE_SIZE
 # Cell Elements
 NUM_PITS = 20
 NUM_WUMPUS = 3
-NUM_GOLD = 1
+NUM_GOLD = 0
+
+# Strategy
+SHOOT = False
+RISKY = True

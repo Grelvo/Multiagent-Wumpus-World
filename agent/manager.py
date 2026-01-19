@@ -2,6 +2,7 @@ from agent.task import Task, MoveTask, ShootTask, TaskResult
 from agent.core import Agent
 from game.board import Board
 from util.helperFunc import get_neighbours
+from util.config import SHOOT, RISKY
 
 
 class AgentManager:
@@ -54,7 +55,9 @@ class AgentManager:
         if result.stench or result.breeze:
             potential_danger_group = []
             for nx, ny in neighbors:
-                if self.shared_beliefs.get((nx, ny), {}).get("wumpus") or self.shared_beliefs.get((nx, ny), {}).get("dead_wumpus") or self.shared_beliefs.get((nx, ny), {}).get("pit"):
+                if (self.shared_beliefs.get((nx, ny), {}).get("wumpus") or
+                        self.shared_beliefs.get((nx, ny), {}).get("dead_wumpus") or
+                        self.shared_beliefs.get((nx, ny), {}).get("pit")):
                     potential_danger_group.append((nx, ny))
                     continue
                 if (nx, ny) in self.shared_visited:
@@ -78,7 +81,9 @@ class AgentManager:
                 })
                 potential_danger_group.append((nx, ny))
 
-            if all(self.shared_beliefs.get((pdx, pdy), {}).get("wumpus") or self.shared_beliefs.get((pdx, pdy), {}).get("dead_wumpus") or self.shared_beliefs.get((pdx, pdy), {}).get("pit") for (pdx, pdy) in potential_danger_group):
+            if all(self.shared_beliefs.get((pdx, pdy), {}).get("wumpus") or
+                   self.shared_beliefs.get((pdx, pdy), {}).get("dead_wumpus") or
+                   self.shared_beliefs.get((pdx, pdy), {}).get("pit") for (pdx, pdy) in potential_danger_group):
                 return
 
             if len(potential_danger_group) == 1:
@@ -112,7 +117,9 @@ class AgentManager:
                     group.remove((nx, ny))
 
                     if len(group) == 1:
-                        if not (self.shared_beliefs.get(group[0], {}).get("wumpus") or self.shared_beliefs.get(group[0], {}).get("dead_wumpus") or self.shared_beliefs.get(group[0], {}).get("pit")):
+                        if not (self.shared_beliefs.get(group[0], {}).get("wumpus") or
+                                self.shared_beliefs.get(group[0], {}).get("dead_wumpus") or
+                                self.shared_beliefs.get(group[0], {}).get("pit")):
                             self.shared_beliefs[group[0]].update({
                                 "potential_pit": False,
                                 "potential_wumpus": False,
@@ -137,11 +144,12 @@ class AgentManager:
         ]
         tasks.extend(move_tasks)
 
-        shoot_tasks = [
-            ShootTask((bx, by)) for (bx, by) in self.shared_beliefs.keys()
-            if self.shared_beliefs.get((bx, by), {}).get("wumpus")
-        ]
-        tasks.extend(shoot_tasks)
+        if SHOOT:
+            shoot_tasks = [
+                ShootTask((bx, by)) for (bx, by) in self.shared_beliefs.keys()
+                if self.shared_beliefs.get((bx, by), {}).get("wumpus")
+            ]
+            tasks.extend(shoot_tasks)
 
         return tasks
 
@@ -156,7 +164,8 @@ class AgentManager:
             if agent.dead:
                 continue
 
-            came_from, cost_so_far = agent.create_dijkstra_paths(self.shared_beliefs)
+            came_from, cost_so_far = agent.create_dijkstra_paths(self.shared_beliefs, risky=RISKY)
+
             for task in tasks:
                 bid, path = agent.bid_for_task(task, came_from, cost_so_far)
                 bids.append((bid, agent.agent_id, task, path))

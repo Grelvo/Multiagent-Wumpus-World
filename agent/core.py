@@ -34,7 +34,7 @@ class Agent:
         self.dead = False
 
     def bid_for_task(self, task: Task, came_from: dict[tuple[int, int], tuple[int, int]],
-                     cost_so_far: dict[tuple[int, int], int]) -> tuple[float, list[tuple[int, int]] | None]:
+                     cost_so_far: dict[tuple[int, int], int] | None) -> tuple[float, list[tuple[int, int]] | None]:
         """Creates a bid value for a task and the path towards completing it.
 
         :param task: The task on which needs to be bid.
@@ -51,10 +51,11 @@ class Agent:
 
         if task.task_type == TaskType.MOVE:
             path = self._reconstruct_path(came_from, task.target)
-            cost = cost_so_far[task.target]
+            cost = cost_so_far.get(task.target, float('inf'))
+
         elif task.task_type == TaskType.SHOOT and self.has_arrow:
             path = self._nearest_aligned_cell_path(came_from, task.target)
-            cost = cost_so_far[path[len(path) - 1]]
+            cost = cost_so_far.get((path[len(path) - 1]), float('inf'))
 
         if path is None:
             return bid, path
@@ -92,7 +93,7 @@ class Agent:
 
         return came_from
 
-    def create_dijkstra_paths(self, beliefs: dict[tuple[int, int], dict[str, bool]]) \
+    def create_dijkstra_paths(self, beliefs: dict[tuple[int, int], dict[str, bool]], risky=False) \
             -> tuple[dict[tuple[int, int], tuple[int, int]], dict[tuple[int, int], int]]:
         """Creates a Network of Paths from its current position to any other on the board.
 
@@ -117,7 +118,10 @@ class Agent:
                     continue
 
                 if cell_info.get("potential_pit") or cell_info.get("potential_wumpus"):
-                    step_cost = 1000
+                    if risky:
+                        step_cost = 1000
+                    else:
+                        continue
                 else:
                     step_cost = 1
 
