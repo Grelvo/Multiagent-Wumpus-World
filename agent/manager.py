@@ -164,12 +164,16 @@ class AgentManager:
             if agent.dead:
                 continue
 
+            # creates the Network of path for each cell to the agents cell and their travel cost
             came_from, cost_so_far = agent.create_dijkstra_paths(self.shared_beliefs, risky=RISKY)
 
             for task in tasks:
+                # agent creates a bid
                 bid, path = agent.bid_for_task(task, came_from, cost_so_far, [(a.x, a.y) for a in self._agents if a is not agent and not a.dead])
+                # bid, the id of the agent, the task and the path to the task are appended to the bids
                 bids.append((bid, agent.agent_id, task, path))
 
+        # bids are sorted, highest bits are at the top of the list
         bids.sort(reverse=True, key=lambda x: x[0])
         return bids
 

@@ -168,6 +168,7 @@ class Game:
 
         awarded_tasks = self._agent_manager.award_tasks(bids)
 
+        # if all agents have no task they are stuck
         if not awarded_tasks:
             self._statistic.increase_stuck_amount()
             self._running = False
@@ -175,6 +176,7 @@ class Game:
             return
 
         for agent in self._agents:
+            # if an agent doesn't have a task, they are skipped
             if agent.agent_id not in awarded_tasks:
                 continue
 

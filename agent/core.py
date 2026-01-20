@@ -51,21 +51,28 @@ class Agent:
             return bid, path
 
         if task.task_type == TaskType.MOVE:
+            # recreates the path from the Network of paths and the goal
             path = self._reconstruct_path(came_from, task.target)
             if path is None:
                 return bid, path
             tx, ty = task.target
+            # bonus for giving an edge to targets that are further away from other agents
             manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
+            # cost for getting to the target
             cost = cost_so_far.get(task.target, float('inf'))
 
         elif task.task_type == TaskType.SHOOT and self.has_arrow:
+            # recreates the path to the nearest aligned cell from the Network of paths and the goal
             path = self._nearest_aligned_cell_path(came_from, task.target)
             if path is None:
                 return bid, path
             tx, ty = path[len(path) - 1]
+            # bonus for giving an edge to targets that are further away from other agents
             manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
+            # cost for getting to the nearest aligned cell
             cost = cost_so_far.get((tx, ty), float('inf'))
 
+        # creates bid with the reward, the travel cost and the manhatten-bonus
         bid = task.reward - cost + manhattan_bonus
 
         return bid, path
