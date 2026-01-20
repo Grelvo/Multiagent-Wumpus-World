@@ -34,7 +34,7 @@ class Agent:
         self.dead = False
 
     def bid_for_task(self, task: Task, came_from: dict[tuple[int, int], tuple[int, int]],
-                     cost_so_far: dict[tuple[int, int], int] | None) -> tuple[float, list[tuple[int, int]] | None]:
+                     cost_so_far: dict[tuple[int, int], int] | None, agent_pos: list[tuple[int, int]]) -> tuple[float, list[tuple[int, int]] | None]:
         """Creates a bid value for a task and the path towards completing it.
 
         :param task: The task on which needs to be bid.
@@ -45,6 +45,7 @@ class Agent:
         bid = -float('inf')
         path = None
         cost = float('inf')
+        manhattan_bonus = 0
 
         if self.dead:
             return bid, path
@@ -53,15 +54,19 @@ class Agent:
             path = self._reconstruct_path(came_from, task.target)
             if path is None:
                 return bid, path
+            tx, ty = task.target
+            manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
             cost = cost_so_far.get(task.target, float('inf'))
 
         elif task.task_type == TaskType.SHOOT and self.has_arrow:
             path = self._nearest_aligned_cell_path(came_from, task.target)
             if path is None:
                 return bid, path
-            cost = cost_so_far.get((path[len(path) - 1]), float('inf'))
+            tx, ty = path[len(path) - 1]
+            manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
+            cost = cost_so_far.get((tx, ty), float('inf'))
 
-        bid = task.reward - cost
+        bid = task.reward - cost + manhattan_bonus
 
         return bid, path
 

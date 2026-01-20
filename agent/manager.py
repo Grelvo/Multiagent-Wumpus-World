@@ -44,13 +44,13 @@ class AgentManager:
             "wumpus": result.wumpus,
         })
 
-        neighbors = get_neighbours(agent.x, agent.y)
-
         if result.wumpus_died:
             self.shared_beliefs.setdefault(result.wumpus_died, {}).update({
                 "wumpus": False,
                 "dead_wumpus": True,
             })
+
+        neighbors = get_neighbours(agent.x, agent.y)
 
         if result.stench or result.breeze:
             potential_danger_group = []
@@ -167,7 +167,7 @@ class AgentManager:
             came_from, cost_so_far = agent.create_dijkstra_paths(self.shared_beliefs, risky=RISKY)
 
             for task in tasks:
-                bid, path = agent.bid_for_task(task, came_from, cost_so_far)
+                bid, path = agent.bid_for_task(task, came_from, cost_so_far, [(a.x, a.y) for a in self._agents if a is not agent and not a.dead])
                 bids.append((bid, agent.agent_id, task, path))
 
         bids.sort(reverse=True, key=lambda x: x[0])

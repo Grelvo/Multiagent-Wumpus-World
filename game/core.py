@@ -63,25 +63,6 @@ class Game:
         self._statistic: Statistics = Statistics()
         self._game_steps: int = 0
 
-    def _setup_game(self) -> None:
-        """Sets up the game."""
-        self._running = True
-        self._board.setup_board(self._agents)
-
-        for agent in self._agents:
-            self._agent_manager.update_beliefs(agent, TaskResult())
-
-    def _restart_game(self) -> None:
-        """Reset the game state and start a new game."""
-        self._restart = False
-
-        self._game_steps = 0
-
-        self._board.reset()
-        self._agent_manager.reset()
-        for agent in self._agents:
-            agent.reset()
-
     def start_game(self) -> None:
         while True:
             self._setup_game()
@@ -103,6 +84,25 @@ class Game:
 
         if STATISTICS_ENABLED:
             self._statistic.create_file()
+
+    def _setup_game(self) -> None:
+        """Sets up the game."""
+        self._running = True
+        self._board.setup_board(self._agents)
+
+        for agent in self._agents:
+            self._agent_manager.update_beliefs(agent, TaskResult())
+
+    def _restart_game(self) -> None:
+        """Reset the game state and start a new game."""
+        self._restart = False
+
+        self._game_steps = 0
+
+        self._board.reset()
+        self._agent_manager.reset()
+        for agent in self._agents:
+            agent.reset()
 
     def _run(self) -> None:
         """Runs the game-loop."""
