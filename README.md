@@ -34,7 +34,7 @@ and an evaluation should be made and saved under `statistic/statistics`.\
 
 ---
 
-## Steuerung
+## Controls
 
 `Enter` Toggles the game mode between two modes:
 * `STEP` Makes a game step after being requested by the user.
