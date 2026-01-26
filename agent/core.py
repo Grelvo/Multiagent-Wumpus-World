@@ -11,7 +11,7 @@ class Agent:
     :ivar agent_id (int): The unique id of the agent.
     :ivar x (int): The x coordinate of the agent.
     :ivar y (int): The y coordinate of the agent.
-    :ivar has_arrow (bool): Whether the agent has an arrow
+    :ivar has_arrow (bool): Whether the agent has an arrow.
     :ivar dead (bool): Whether the agent is dead.
     """
     def __init__(self, agent_id: int):
@@ -33,13 +33,17 @@ class Agent:
 
         self.dead = False
 
-    def bid_for_task(self, task: Task, came_from: dict[tuple[int, int], tuple[int, int]],
-                     cost_so_far: dict[tuple[int, int], int] | None, agent_pos: list[tuple[int, int]]) -> tuple[float, list[tuple[int, int]] | None]:
+    def bid_for_task(self,
+                     task: Task,
+                     came_from: dict[tuple[int, int], tuple[int, int]],
+                     cost_so_far: dict[tuple[int, int], int] | None,
+                     agent_pos: list[tuple[int, int]]) -> tuple[float, list[tuple[int, int]] | None]:
         """Creates a bid value for a task and the path towards completing it.
 
         :param task: The task on which needs to be bid.
         :param came_from: The network of paths from its current position to any other.
         :param cost_so_far: A dict with the positions and the cost of getting to it.
+        :param agent_pos: The positions of all the other agents.
         :return: The bid value for the task and the path for it.
         """
         bid = -float('inf')
@@ -111,7 +115,8 @@ class Agent:
         """Creates a Network of Paths from its current position to any other on the board.
 
         :param beliefs: The current beliefs the agents have on the board.
-        :return: The Network of Paths and the cost to travel to each cell
+        :param risky: Whether an agent can run onto potential danger.
+        :return: The Network of Paths and the cost to travel to each cell.
         """
 
         start = (self.x, self.y)

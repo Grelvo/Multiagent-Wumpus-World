@@ -8,12 +8,12 @@ from util.config import SHOOT, RISKY
 class AgentManager:
     """Handles the shared vision of the Agents and Creates and awards Tasks to the Agents.
 
-    :ivar _agents (list[Agent]): The agents that are being managed
-    :ivar shared_visited (set[tuple[int, int]]): The Coordinates the agents have already visited
+    :ivar _agents (list[Agent]): The agents that are being managed.
+    :ivar shared_visited (set[tuple[int, int]]): The Coordinates the agents have already visited.
     :ivar shared_beliefs (dict[tuple[int, int], dict[str, bool]]): Contains the information the agents have gathered
-        on the cells
+        on the cells.
     :ivar _potential_danger_groups (list[list[tuple[int, int]]]): A list of Groups of cells, of which exactly one
-        is dangerous
+        is dangerous.
     """
     def __init__(self, agents: list[Agent]):
         self._agents: list[Agent] = agents
@@ -53,23 +53,26 @@ class AgentManager:
         neighbors = get_neighbours(agent.x, agent.y)
 
         if result.stench or result.breeze:
+            # determine where the danger is
             potential_danger_group = []
             for nx, ny in neighbors:
+                # count wumpus and pits, but no need to mark them as potential dangerous
                 if (self.shared_beliefs.get((nx, ny), {}).get("wumpus") or
                         self.shared_beliefs.get((nx, ny), {}).get("dead_wumpus") or
                         self.shared_beliefs.get((nx, ny), {}).get("pit")):
                     potential_danger_group.append((nx, ny))
                     continue
+
                 if (nx, ny) in self.shared_visited:
                     continue
 
+                # if potential danger next to a non breeze / stench cell, then that cant be a potential danger
                 potential_danger_neighbors = get_neighbours(nx, ny)
-
                 if any(
                         pdn_pos in self.shared_visited and not
                         (
-                            self.shared_beliefs.get(pdn_pos, {}).get("breeze") or
-                            self.shared_beliefs.get(pdn_pos, {}).get("stench")
+                            (self.shared_beliefs.get(pdn_pos, {}).get("breeze") and result.breeze) or
+                            (self.shared_beliefs.get(pdn_pos, {}).get("stench") and result.stench)
                         )
                         for pdn_pos in potential_danger_neighbors
                 ):
@@ -81,11 +84,13 @@ class AgentManager:
                 })
                 potential_danger_group.append((nx, ny))
 
+            # if there are only real dangers and no potential dangers in the group, then that group is completed
             if all(self.shared_beliefs.get((pdx, pdy), {}).get("wumpus") or
                    self.shared_beliefs.get((pdx, pdy), {}).get("dead_wumpus") or
                    self.shared_beliefs.get((pdx, pdy), {}).get("pit") for (pdx, pdy) in potential_danger_group):
                 return
 
+            # if there is only one potential danger, then that must be the danger the current cell is referring to
             if len(potential_danger_group) == 1:
                 potential_pit = self.shared_beliefs.get(potential_danger_group[0], {}).get("potential_pit")
                 potential_wumpus = self.shared_beliefs.get(potential_danger_group[0], {}).get("potential_wumpus")
@@ -98,6 +103,7 @@ class AgentManager:
             elif len(potential_danger_group):
                 self._potential_danger_groups.append(potential_danger_group)
         else:
+            # update potential danger groups
             for nx, ny in neighbors:
                 potential_pit = self.shared_beliefs.get((nx, ny), {}).get("potential_pit")
                 potential_wumpus = self.shared_beliefs.get((nx, ny), {}).get("potential_wumpus")
@@ -116,6 +122,7 @@ class AgentManager:
 
                     group.remove((nx, ny))
 
+                    # if there is only one potential danger, then that must be the danger of the group
                     if len(group) == 1:
                         if not (self.shared_beliefs.get(group[0], {}).get("wumpus") or
                                 self.shared_beliefs.get(group[0], {}).get("dead_wumpus") or
@@ -169,7 +176,8 @@ class AgentManager:
 
             for task in tasks:
                 # agent creates a bid
-                bid, path = agent.bid_for_task(task, came_from, cost_so_far, [(a.x, a.y) for a in self._agents if a is not agent and not a.dead])
+                bid, path = agent.bid_for_task(
+                    task, came_from, cost_so_far, [(a.x, a.y) for a in self._agents if a is not agent and not a.dead])
                 # bid, the id of the agent, the task and the path to the task are appended to the bids
                 bids.append((bid, agent.agent_id, task, path))
 

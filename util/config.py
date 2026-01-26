@@ -3,15 +3,16 @@ GRID_SIZE = 20
 TILE_SIZE = 32
 WINDOW_SIZE = GRID_SIZE * TILE_SIZE
 
-# Cell Elements
+# Elements
 NUM_PITS = 20
 NUM_WUMPUS = 3
 NUM_GOLD = 1
 
 # Strategy
-SHOOT = False
+SHOOT = True
 RISKY = True
+MANHATTEN_BONUS = True
 
 # Statistic
 STATISTICS_ENABLED = True
-MAX_CYCLES = 10
+MAX_CYCLES = 1000
