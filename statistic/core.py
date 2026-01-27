@@ -41,7 +41,7 @@ class Statistics:
             f.write(f'Strategy: \n'
                     f'   Shoot: {SHOOT} \n'
                     f'   Risky: {RISKY} \n'
-                    f'   Risky: {MANHATTEN_BONUS} \n'
+                    f'   Manhatten_Bonus: {MANHATTEN_BONUS} \n'
                     f'Total amounts: \n'
                     f'   amount of cycles: {self._cycles} \n'
                     f'   amount of stuck cycles: {self._stuck_amount} \n'
