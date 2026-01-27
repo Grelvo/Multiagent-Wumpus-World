@@ -1,5 +1,6 @@
 from agent.task import Task, TaskType
 from util.helperFunc import get_neighbours
+from util.config import *
 
 from collections import deque
 import heapq
@@ -61,7 +62,8 @@ class Agent:
                 return bid, path
             tx, ty = task.target
             # bonus for giving an edge to targets that are further away from other agents
-            manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
+            if MANHATTEN_BONUS:
+                manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
             # cost for getting to the target
             cost = cost_so_far.get(task.target, float('inf'))
 
@@ -72,7 +74,8 @@ class Agent:
                 return bid, path
             tx, ty = path[len(path) - 1]
             # bonus for giving an edge to targets that are further away from other agents
-            manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
+            if MANHATTEN_BONUS:
+                manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
             # cost for getting to the nearest aligned cell
             cost = cost_so_far.get((tx, ty), float('inf'))
 
