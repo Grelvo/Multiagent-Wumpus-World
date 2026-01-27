@@ -20,19 +20,28 @@ class Statistics:
         self._stuck_amount: int = 0
 
     def get_cycles(self) -> int:
-        """Returns the amount of cycles saved in Statistics"""
+        """Returns the amount of cycles."""
         return self._cycles
     
     def increase_stuck_amount(self) -> None:
+        """Increases the stuck counter by 1."""
         self._stuck_amount += 1
 
     def update(self, game_steps: int, deaths: int, cells_explored: int) -> None:
+        """
+        Adds the new Data from the current cycle to the already saved Data and increases cycle amount by 1.
+
+        :param game_steps: The amount of gamesteps in the current played cycle
+        :param deaths: The amount of deaths in the current played cycle
+        :param cells_explored: The amount of explored cells in the current played cycle
+        """
         self._cycles += 1
         self._game_steps += game_steps
         self._deaths += deaths
         self._cells_explored += cells_explored
 
     def create_file(self) -> None:
+        """Creates the txt file with all the gathered statistics and saves it into the statistics folder."""
         if self._cycles == 0:
             return
 
