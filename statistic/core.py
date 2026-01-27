@@ -8,6 +8,9 @@ class Statistics:
 
     :ivar _cycles (int): The amount of game cycles
     :ivar _game_steps (int): The total number of game_steps over all played game cycles
+    :ivar _deaths (int): The total number of deaths over all played game cycles
+    :ivar _cells_explored (int): The total amount of explored cells over all played game cycles
+    :ivar _stuck_amount (int): The total rotations where the agents got stuck and had no more moves according to their strategy
     """
     def __init__(self):
         self._cycles: int = 0
@@ -17,6 +20,7 @@ class Statistics:
         self._stuck_amount: int = 0
 
     def get_cycles(self) -> int:
+        """Returns the amount of cycles saved in Statistics"""
         return self._cycles
     
     def increase_stuck_amount(self) -> None:
@@ -37,6 +41,7 @@ class Statistics:
             f.write(f'Strategy: \n'
                     f'   Shoot: {SHOOT} \n'
                     f'   Risky: {RISKY} \n'
+                    f'   Risky: {MANHATTEN_BONUS} \n'
                     f'Total amounts: \n'
                     f'   amount of cycles: {self._cycles} \n'
                     f'   amount of stuck cycles: {self._stuck_amount} \n'
