@@ -63,7 +63,7 @@ class Agent:
             tx, ty = task.target
             # bonus for giving an edge to targets that are further away from other agents
             if MANHATTEN_BONUS:
-                manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
+                manhattan_bonus = min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) / 100
             # cost for getting to the target
             cost = cost_so_far.get(task.target, float('inf'))
 
@@ -75,7 +75,7 @@ class Agent:
             tx, ty = path[len(path) - 1]
             # bonus for giving an edge to targets that are further away from other agents
             if MANHATTEN_BONUS:
-                manhattan_bonus = (min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) ** 1.2) / 100
+                manhattan_bonus = min([abs(ax - tx) + abs(ay - ty) for (ax, ay) in agent_pos], default=0) / 100
             # cost for getting to the nearest aligned cell
             cost = cost_so_far.get((tx, ty), float('inf'))
 

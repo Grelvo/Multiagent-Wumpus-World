@@ -1,6 +1,7 @@
 from util.config import *
 
 from datetime import datetime
+import os
 
 
 class Statistics:
@@ -45,8 +46,11 @@ class Statistics:
         if self._cycles == 0:
             return
 
-        with open(f'../Intelligente-Softwareagenten/statistic/statistics/'
-                  f'{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}-cycles-{self._cycles}', 'x') as f:
+        folder = f'statistic/statistics'
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+        with open(f'{folder}/{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}-cycles-{self._cycles}', 'x') as f:
             f.write(f'Strategy: \n'
                     f'   Shoot: {SHOOT} \n'
                     f'   Risky: {RISKY} \n'
